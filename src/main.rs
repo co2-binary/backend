@@ -1,6 +1,13 @@
 mod model;
 
-use rocket::{get, http::Status, launch, routes, serde::json::Json, State};
+use rocket::{
+    fairing::{Fairing, Info, Kind},
+    get,
+    http::{Header, Status},
+    launch, routes,
+    serde::json::Json,
+    Request, Response, State,
+};
 
 use crate::model::*;
 
@@ -89,7 +96,9 @@ fn index() -> Status {
 
 #[launch]
 fn rocket() -> _ {
-    let mut rdr = csv::Reader::from_path("co2.csv").expect("Failed to read file");
+    let data = include_str!("../co2.csv");
+
+    let mut rdr = csv::Reader::from_reader(data.as_bytes());
 
     let header_record = rdr.headers().expect("Failed to read header");
 
@@ -100,7 +109,30 @@ fn rocket() -> _ {
     }
 
     rocket::build()
+        .attach(CORS)
         .manage(records)
         .mount("/", routes![index])
         .mount("/api/v1", routes![regions, data_types, summary])
+}
+
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to responses",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, GET, PATCH, OPTIONS",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
 }
