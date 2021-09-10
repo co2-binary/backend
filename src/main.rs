@@ -4,11 +4,14 @@ use rocket::{get, http::Status, launch, routes, serde::json::Json, State};
 
 use crate::model::*;
 
+#[get("/distribution/regions")]
+fn regions(records: &State<Records>) -> Json<Regions> {
+    Json(records.get_regions())
+}
+
 #[get("/distribution/dataTypes")]
 fn data_types(records: &State<Records>) -> Json<DataTypes> {
-    Json(DataTypes {
-        results: records.get_data_types(),
-    })
+    Json(records.get_data_types())
 }
 
 #[get("/")]
@@ -31,5 +34,5 @@ fn rocket() -> _ {
     rocket::build()
         .manage(records)
         .mount("/", routes![index])
-        .mount("/api/v1", routes![data_types])
+        .mount("/api/v1", routes![regions, data_types])
 }

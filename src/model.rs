@@ -24,14 +24,14 @@ impl Records {
         self.records.push(r);
     }
 
-    pub fn get_data_types(&self) -> Vec<DataType> {
-        let mut data_types = Vec::new();
+    pub fn get_data_types(&self) -> DataTypes {
+        let mut results = Vec::new();
 
         let mut i = 1;
 
         for header in &self.headers {
             if let Some((name, units)) = header.split_once(",") {
-                data_types.push(DataType {
+                results.push(DataType {
                     id: i,
                     name: name.trim(),
                     units: units.trim(),
@@ -41,19 +41,56 @@ impl Records {
             }
         }
 
-        data_types
+        DataTypes {
+            results,
+        }
+    }
+
+    pub fn get_regions(&self) -> Regions {
+        let header_index = self
+            .headers
+            .iter()
+            .position(|h| h == "region")
+            .expect("Failed to find region header");
+        
+        let mut regions = Vec::new();
+        
+        for record in &self.records {
+            let region = record.get(header_index).expect("Missing region");
+            
+            if !regions.contains(&region) {
+                regions.push(region);
+            }
+        }
+        
+        regions.sort();
+
+        let mut results = Vec::new();
+        
+        let mut i = 1;
+
+        for region in regions {
+            results.push(Region {
+                id: i,
+                name: region,
+            });
+            
+            i += 1;
+        }
+        
+        Regions { results }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Region {
+pub struct Region<'a> {
     pub id: u64,
-    pub name: String,
+    pub name: &'a str,
 }
 
 #[derive(Serialize)]
-pub struct Regions {
-    pub results: Vec<Region>,
+pub struct Regions<'a> {
+    pub results: Vec<Region<'a>>,
 }
 
 #[derive(Serialize)]
