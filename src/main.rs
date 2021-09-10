@@ -1,8 +1,6 @@
 mod model;
 
-use csv::StringRecord;
 use rocket::{get, http::Status, launch, routes, serde::json::Json, State};
-use serde_json::json;
 
 use crate::model::*;
 
