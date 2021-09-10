@@ -1,52 +1,47 @@
-use serde::{Serialize, Deserialize};
+use csv::StringRecord;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
-pub struct Record {
-    year: u32,
-    month: u8,
-    region: String,
-    #[serde(rename = "co2, tons")]
-    co2: f64,
-    #[serde(rename = "trees, pcs")]
-    trees: u64,
+pub struct Records {
+    headers: Vec<String>,
+    records: Vec<StringRecord>,
 }
 
-pub struct Records(Vec<Record>);
-
 impl Records {
-    pub fn new() -> Self {
-        Self { 0: Vec::new() }
-    }
-    
-    pub fn add(&mut self, r: Record) {
-        self.0.push(r);
-    }
-    
-    pub fn get_regions(&self) -> Vec<Region> {
-        let mut regions: Vec<&str> = Vec::new();
+    pub fn new(header_record: StringRecord) -> Self {
+        let mut headers = Vec::new();
 
-        for record in &self.0 {
-            if !regions.contains(&record.region.as_str()) {
-                regions.push(&record.region);
-            }
+        for field in header_record.iter() {
+            headers.push(field.to_string());
         }
-        
-        regions.sort(); 
-        
-        let mut result = Vec::new();
+
+        Self {
+            headers,
+            records: Vec::new(),
+        }
+    }
+
+    pub fn add_record(&mut self, r: StringRecord) {
+        self.records.push(r);
+    }
+
+    pub fn get_data_types(&self) -> Vec<DataType> {
+        let mut data_types = Vec::new();
 
         let mut i = 1;
 
-        for region in regions {
-            result.push(Region {
-                id: i,
-                name: region.to_string(),
-            });
-            
-            i += 1;
+        for header in &self.headers {
+            if let Some((name, units)) = header.split_once(",") {
+                data_types.push(DataType {
+                    id: i,
+                    name: name.trim(),
+                    units: units.trim(),
+                });
+
+                i += 1;
+            }
         }
-        
-        result
+
+        data_types
     }
 }
 
@@ -56,8 +51,19 @@ pub struct Region {
     pub name: String,
 }
 
-
 #[derive(Serialize)]
 pub struct Regions {
     pub results: Vec<Region>,
+}
+
+#[derive(Serialize)]
+pub struct DataType<'a> {
+    id: u64,
+    name: &'a str,
+    units: &'a str,
+}
+
+#[derive(Serialize)]
+pub struct DataTypes<'a> {
+    pub results: Vec<DataType<'a>>,
 }

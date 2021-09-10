@@ -4,10 +4,10 @@ use rocket::{get, http::Status, launch, routes, serde::json::Json, State};
 
 use crate::model::*;
 
-#[get("/distribution/regions")]
-fn regions(records: &State<Records>) -> Json<Regions> {
-    Json(Regions {
-        results: records.get_regions(),
+#[get("/distribution/dataTypes")]
+fn data_types(records: &State<Records>) -> Json<DataTypes> {
+    Json(DataTypes {
+        results: records.get_data_types(),
     })
 }
 
@@ -20,16 +20,16 @@ fn index() -> Status {
 fn rocket() -> _ {
     let mut rdr = csv::Reader::from_path("co2.csv").expect("Failed to read file");
 
-    let mut records = Records::new();
+    let header_record = rdr.headers().expect("Failed to read header");
 
-    for result in rdr.deserialize() {
-        let record: Record = result.unwrap();
+    let mut records = Records::new(header_record.clone());
 
-        records.add(record);
+    for record in rdr.records() {
+        records.add_record(record.unwrap());
     }
 
     rocket::build()
         .manage(records)
         .mount("/", routes![index])
-        .mount("/api/v1", routes![regions])
+        .mount("/api/v1", routes![data_types])
 }
